@@ -1,0 +1,180 @@
+{
+  "sampleAirtableBase": {
+    "name": "Form Builder Demo",
+    "description": "Sample base structure for testing the Airtable Form Builder",
+    "tables": [
+      {
+        "name": "Contact Form Submissions",
+        "description": "Collects contact information and inquiries",
+        "fields": [
+          {
+            "name": "Name",
+            "type": "singleLineText",
+            "description": "Full name of the person"
+          },
+          {
+            "name": "Email",
+            "type": "email",
+            "description": "Email address (Note: will be filtered out as unsupported)"
+          },
+          {
+            "name": "Company",
+            "type": "singleLineText",
+            "description": "Company name"
+          },
+          {
+            "name": "Role",
+            "type": "singleSelect",
+            "options": {
+              "choices": [
+                { "name": "Developer" },
+                { "name": "Designer" },
+                { "name": "Manager" },
+                { "name": "Other" }
+              ]
+            }
+          },
+          {
+            "name": "Skills",
+            "type": "multipleSelects",
+            "options": {
+              "choices": [
+                { "name": "JavaScript" },
+                { "name": "Python" },
+                { "name": "React" },
+                { "name": "Node.js" },
+                { "name": "MongoDB" },
+                { "name": "AWS" }
+              ]
+            }
+          },
+          {
+            "name": "Experience Level",
+            "type": "singleSelect",
+            "options": {
+              "choices": [
+                { "name": "Junior (0-2 years)" },
+                { "name": "Mid-level (3-5 years)" },
+                { "name": "Senior (6+ years)" }
+              ]
+            }
+          },
+          {
+            "name": "Message",
+            "type": "multilineText",
+            "description": "Additional comments or questions"
+          },
+          {
+            "name": "Resume",
+            "type": "multipleAttachments",
+            "description": "Upload resume or portfolio"
+          },
+          {
+            "name": "Created Date",
+            "type": "createdTime",
+            "description": "Automatically set (Note: will be filtered out as unsupported)"
+          }
+        ]
+      },
+      {
+        "name": "Event Registration",
+        "description": "Event registration form with conditional fields",
+        "fields": [
+          {
+            "name": "Attendee Name",
+            "type": "singleLineText"
+          },
+          {
+            "name": "Event Type",
+            "type": "singleSelect",
+            "options": {
+              "choices": [
+                { "name": "Workshop" },
+                { "name": "Conference" },
+                { "name": "Networking" }
+              ]
+            }
+          },
+          {
+            "name": "Workshop Topic",
+            "type": "singleSelect",
+            "description": "Show only when Event Type = Workshop",
+            "options": {
+              "choices": [
+                { "name": "React Fundamentals" },
+                { "name": "Node.js Backend" },
+                { "name": "Database Design" }
+              ]
+            }
+          },
+          {
+            "name": "Dietary Restrictions",
+            "type": "multipleSelects",
+            "options": {
+              "choices": [
+                { "name": "Vegetarian" },
+                { "name": "Vegan" },
+                { "name": "Gluten-free" },
+                { "name": "None" }
+              ]
+            }
+          },
+          {
+            "name": "Special Requests",
+            "type": "multilineText"
+          }
+        ]
+      }
+    ]
+  },
+  "conditionalLogicExamples": [
+    {
+      "description": "Show 'Workshop Topic' only when 'Event Type' equals 'Workshop'",
+      "field": "Workshop Topic",
+      "showWhen": {
+        "mode": "all",
+        "conditions": [
+          {
+            "fieldId": "fldEventType",
+            "operator": "equals",
+            "value": "Workshop"
+          }
+        ]
+      }
+    },
+    {
+      "description": "Show 'Skills' field only when Role is 'Developer' AND Experience is not empty",
+      "field": "Skills",
+      "showWhen": {
+        "mode": "all",
+        "conditions": [
+          {
+            "fieldId": "fldRole",
+            "operator": "equals",
+            "value": "Developer"
+          },
+          {
+            "fieldId": "fldExperience",
+            "operator": "not_equals",
+            "value": ""
+          }
+        ]
+      }
+    }
+  ],
+  "testingInstructions": {
+    "setup": [
+      "1. Create a new Airtable base using the structure above",
+      "2. Add some sample data to test field options",
+      "3. Set up OAuth app with redirect URI pointing to your backend",
+      "4. Use the base in your form builder to test all functionality"
+    ],
+    "testScenarios": [
+      "1. Create a form with all supported field types",
+      "2. Add conditional logic to show/hide fields based on selections",
+      "3. Test file upload functionality with the Resume field",
+      "4. Submit the form and verify data appears in Airtable",
+      "5. Test form validation with required fields"
+    ]
+  }
+}

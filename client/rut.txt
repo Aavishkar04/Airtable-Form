@@ -1,0 +1,8 @@
+PORT=4000
+MONGO_URI=mongodb+srv://aavishkarkamble04:sad@dss.gfghxni.mongodb.net/airtable-form-builder?retryWrites=true&w=majority&appName=dss
+JWT_SECRET=aavishkar_super_secret_jwt_key_12345
+
+# Airtable OAuth / API
+AIRTABLE_CLIENT_ID=9f160f9b-9180-4568-bc02-9c195c481218
+AIRTABLE_CLIENT_SECRET=f66d177c1c486d3075707f0e3269573d52529a67941fe08064570353babd8df6
+AIRTABLE_OAUTH_REDIRECT_URI=http://localhost:4000/auth/airtable/callback

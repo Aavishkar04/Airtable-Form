@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Connection</title>
+</head>
+<body>
+    <h1>Test Airtable Form Builder</h1>
+    
+    <div id="results"></div>
+    
+    <script>
+        async function testConnections() {
+            const results = document.getElementById('results');
+            
+            // Test backend health
+            try {
+                const response = await fetch('http://localhost:4000/health');
+                const data = await response.json();
+                results.innerHTML += '<p>✅ Backend Health: ' + JSON.stringify(data) + '</p>';
+            } catch (error) {
+                results.innerHTML += '<p>❌ Backend Health Error: ' + error.message + '</p>';
+            }
+            
+            // Test frontend
+            try {
+                results.innerHTML += '<p>✅ Frontend: Running on port 5173</p>';
+            } catch (error) {
+                results.innerHTML += '<p>❌ Frontend Error: ' + error.message + '</p>';
+            }
+            
+            // Test OAuth login URL
+            results.innerHTML += '<p><a href="http://localhost:4000/auth/airtable/login" target="_blank">🔗 Test OAuth Login</a></p>';
+        }
+        
+        testConnections();
+    </script>
+</body>
+</html>

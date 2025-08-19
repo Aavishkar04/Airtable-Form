@@ -1,0 +1,35 @@
+{
+  "name": "airtable-form-builder",
+  "version": "1.0.0",
+  "description": "Dynamic Airtable-Connected Form Builder (MERN Stack)",
+  "scripts": {
+    "dev": "start-dev.bat",
+    "server:dev": "cd server && npm run dev",
+    "client:dev": "cd client && npm run dev",
+    "server:start": "cd server && npm start",
+    "client:build": "cd client && npm run build",
+    "test": "npm run test:server && npm run test:client",
+    "test:server": "cd server && npm test",
+    "test:client": "cd client && npm test",
+    "install:all": "npm install && cd server && npm install && cd ../client && npm install",
+    "start:backend": "cd server && npm run dev",
+    "start:frontend": "cd client && npm run dev"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/airtable-form-builder.git"
+  },
+  "keywords": [
+    "airtable",
+    "form-builder",
+    "react",
+    "express",
+    "mongodb",
+    "oauth"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^8.2.0"
+  }
+}
