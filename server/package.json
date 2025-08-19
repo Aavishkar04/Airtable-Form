@@ -1,15 +1,15 @@
-{
+
   "name": "airtable-form-builder-server",
   "version": "1.0.0",
   "description": "Backend for Airtable Form Builder",
-  "main": "src/server.cjs",
+  "type": "module",
+  "main": "src/server.js",
   "scripts": {
-  "start": "node src/server.cjs",
-  "dev": "nodemon src/server.cjs",
-  "test": "jest",
-  "build": "cd ../client && NODE_ENV=development npm install && npm run build"
-},
-
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "test": "jest",
+    "build": "cd ../client && NODE_ENV=development npm install && npm run build"
+  },
   "dependencies": {
     "express": "^4.18.2",
     "mongoose": "^7.5.0",
