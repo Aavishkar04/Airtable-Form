@@ -2,24 +2,40 @@ import mongoose from 'mongoose';
 import crypto from 'crypto';
 
 const userSchema = new mongoose.Schema({
+  // OAuth provider info
+  provider: {
+    type: String,
+    default: 'airtable'
+  },
   airtableUserId: {
     type: String,
-    required: true,
-    unique: true
+    unique: true,
+    sparse: true // Allow null values but ensure uniqueness when present
   },
   email: {
     type: String,
-    required: false // Made optional as Airtable's whoami endpoint does not provide it directly
+    required: false
   },
   name: {
     type: String,
-    required: false // Made optional as Airtable's whoami endpoint does not provide it directly
+    required: false
   },
+  // OAuth tokens
   accessToken: {
     type: String,
     required: true
   },
   refreshToken: {
+    type: String
+  },
+  tokenType: {
+    type: String,
+    default: 'Bearer'
+  },
+  expiresIn: {
+    type: Number
+  },
+  scope: {
     type: String
   },
   tokenExpiresAt: {

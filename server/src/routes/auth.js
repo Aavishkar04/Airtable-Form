@@ -284,33 +284,68 @@ router.get('/test', (req, res) => {
 
 // Step 1: Login redirect to Airtable
 router.get('/airtable/login', (req, res) => {
+  console.log('OAuth login initiated');
+  
+  const clientId = process.env.AIRTABLE_CLIENT_ID;
   const redirectUri = process.env.AIRTABLE_OAUTH_REDIRECT_URI;
 
+  // Validate required environment variables
+  if (!clientId) {
+    console.error('AIRTABLE_CLIENT_ID not configured');
+    return res.status(500).json({ error: 'AIRTABLE_CLIENT_ID not configured' });
+  }
+
   if (!redirectUri) {
+    console.error('AIRTABLE_OAUTH_REDIRECT_URI not configured');
     return res.status(500).json({ error: 'AIRTABLE_OAUTH_REDIRECT_URI not configured' });
   }
 
   const state = crypto.randomBytes(16).toString('hex');
+  const scope = 'data.records:read data.records:write schema.bases:read';
 
-  const authUrl = `https://airtable.com/oauth2/v1/authorize?client_id=${process.env.AIRTABLE_CLIENT_ID}&redirect_uri=${encodeURIComponent(
-    redirectUri
-  )}&response_type=code&state=${state}`;
+  // Build the authorization URL with proper encoding
+  const params = new URLSearchParams({
+    client_id: clientId,
+    redirect_uri: redirectUri,
+    response_type: 'code',
+    scope: scope,
+    state: state
+  });
+
+  const authUrl = `https://airtable.com/oauth2/v1/authorize?${params.toString()}`;
+  
+  console.log('OAuth Parameters:');
+  console.log('- client_id:', clientId);
+  console.log('- redirect_uri:', redirectUri);
+  console.log('- scope:', scope);
+  console.log('- state:', state);
+  console.log('- Full URL:', authUrl);
 
   res.redirect(authUrl);
 });
 
 // Step 2: OAuth callback from Airtable
 router.get('/airtable/callback', async (req, res) => {
-  const { code, state, error } = req.query;
+  console.log('OAuth callback received');
+  console.log('Query params:', req.query);
+  
+  const { code, state, error, error_description } = req.query;
 
   if (error) {
-    return res.status(400).json({ error: 'Airtable OAuth error', details: error });
+    console.error('OAuth error from Airtable:', error, error_description);
+    const clientURL = process.env.CLIENT_URL || 'https://airtable-form-builder-jjcx.onrender.com';
+    return res.redirect(`${clientURL}/?error=${encodeURIComponent(error)}&error_description=${encodeURIComponent(error_description || 'OAuth failed')}`);
   }
+  
   if (!code) {
-    return res.status(400).json({ error: 'Missing authorization code' });
+    console.error('No authorization code received');
+    const clientURL = process.env.CLIENT_URL || 'https://airtable-form-builder-jjcx.onrender.com';
+    return res.redirect(`${clientURL}/?error=no_code&error_description=${encodeURIComponent('No authorization code received')}`);
   }
 
   try {
+    console.log('Exchanging code for tokens...');
+    
     // Exchange code for tokens
     const tokenResponse = await axios.post(
       'https://airtable.com/oauth2/v1/token',
@@ -323,29 +358,59 @@ router.get('/airtable/callback', async (req, res) => {
       }),
       { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
     );
+    
+    console.log('Token exchange successful');
 
     const tokens = tokenResponse.data;
+    console.log('Tokens received:', { 
+      hasAccessToken: !!tokens.access_token,
+      hasRefreshToken: !!tokens.refresh_token,
+      tokenType: tokens.token_type,
+      expiresIn: tokens.expires_in
+    });
 
-    // Save tokens to DB (or update if exists)
-    let user = await User.findOne({ provider: 'airtable' });
+    // Get user info from Airtable
+    console.log('Fetching user info from Airtable...');
+    const userInfoResponse = await axios.get('https://api.airtable.com/v0/meta/whoami', {
+      headers: {
+        'Authorization': `Bearer ${tokens.access_token}`
+      }
+    });
+
+    const airtableUser = userInfoResponse.data;
+    console.log('Airtable user info:', airtableUser);
+
+    // Find or create user
+    let user = await User.findOne({ airtableUserId: airtableUser.id });
+    
     if (!user) {
+      console.log('Creating new user...');
       user = new User({
         provider: 'airtable',
+        airtableUserId: airtableUser.id,
+        email: airtableUser.email,
+        name: airtableUser.name,
         accessToken: tokens.access_token,
         refreshToken: tokens.refresh_token,
         tokenType: tokens.token_type,
         expiresIn: tokens.expires_in,
         scope: tokens.scope,
+        tokenExpiresAt: tokens.expires_in ? new Date(Date.now() + tokens.expires_in * 1000) : null
       });
     } else {
+      console.log('Updating existing user...');
       user.accessToken = tokens.access_token;
       user.refreshToken = tokens.refresh_token;
       user.tokenType = tokens.token_type;
       user.expiresIn = tokens.expires_in;
       user.scope = tokens.scope;
+      user.tokenExpiresAt = tokens.expires_in ? new Date(Date.now() + tokens.expires_in * 1000) : null;
+      user.email = airtableUser.email;
+      user.name = airtableUser.name;
     }
 
     await user.save();
+    console.log('User saved successfully:', user._id);
 
     // Create JWT for app sessions
     const appToken = jwt.sign(
@@ -362,8 +427,53 @@ router.get('/airtable/callback', async (req, res) => {
 
   } catch (err) {
     console.error('OAuth callback error:', err.response?.data || err.message);
-    res.status(500).json({ error: 'Failed to exchange code for tokens', details: err.message });
+    console.error('Full error:', err);
+    
+    const clientURL = process.env.CLIENT_URL || 'https://airtable-form-builder-jjcx.onrender.com';
+    const errorMessage = err.response?.data?.error || err.message || 'Token exchange failed';
+    return res.redirect(`${clientURL}/?error=token_exchange_failed&error_description=${encodeURIComponent(errorMessage)}`);
   }
+});
+
+// Get current user info
+router.get('/me', async (req, res) => {
+  try {
+    const token = req.header('Authorization')?.replace('Bearer ', '');
+    
+    if (!token) {
+      return res.status(401).json({ error: 'No token provided' });
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findById(decoded.userId).select('-accessToken -refreshToken');
+    
+    if (!user) {
+      return res.status(401).json({ error: 'Invalid token' });
+    }
+
+    res.json(user);
+  } catch (error) {
+    console.error('Get user error:', error);
+    res.status(401).json({ error: 'Invalid token' });
+  }
+});
+
+// Test endpoint for debugging OAuth configuration
+router.get('/debug', (req, res) => {
+  res.json({
+    message: 'Auth debug endpoint',
+    env: {
+      clientId: process.env.AIRTABLE_CLIENT_ID ? 'set' : 'missing',
+      clientSecret: process.env.AIRTABLE_CLIENT_SECRET ? 'set' : 'missing',
+      redirectUri: process.env.AIRTABLE_OAUTH_REDIRECT_URI || 'missing',
+      clientUrl: process.env.CLIENT_URL || 'missing',
+      serverUrl: process.env.SERVER_URL || 'missing'
+    },
+    oauth: {
+      authUrl: `https://airtable.com/oauth2/v1/authorize?client_id=${process.env.AIRTABLE_CLIENT_ID}&redirect_uri=${encodeURIComponent(process.env.AIRTABLE_OAUTH_REDIRECT_URI)}&response_type=code&scope=data.records:read%20data.records:write%20schema.bases:read&state=test`,
+      tokenUrl: 'https://airtable.com/oauth2/v1/token'
+    }
+  });
 });
 
 export default router;
