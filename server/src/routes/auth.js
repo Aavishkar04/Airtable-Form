@@ -498,14 +498,38 @@ router.get('/airtable/callback', async (req, res) => {
     res.redirect(redirectURL);
 
   } catch (err) {
-    console.error('OAuth callback error:', err.response?.data || err.message);
+    console.error('=== OAuth Callback Error Details ===');
+    console.error('Error message:', err.message);
     console.error('Error status:', err.response?.status);
+    console.error('Error status text:', err.response?.statusText);
+    console.error('Error data:', err.response?.data);
     console.error('Error headers:', err.response?.headers);
-    console.error('Full error:', err);
+    console.error('Request config:', err.config);
+    console.error('Full error object:', err);
+    console.error('=== End Error Details ===');
     
     const clientURL = process.env.CLIENT_URL || 'https://airtable-form-builder-jjcx.onrender.com';
-    const errorMessage = err.response?.data?.error || err.message || 'Token exchange failed';
-    const errorDescription = err.response?.data?.error_description || `Status: ${err.response?.status}`;
+    
+    // Create more detailed error information
+    let errorMessage = 'oauth_error';
+    let errorDescription = 'Unknown OAuth error';
+    
+    if (err.response) {
+      // Server responded with error status
+      errorMessage = err.response.data?.error || 'server_error';
+      errorDescription = err.response.data?.error_description || 
+                        `HTTP ${err.response.status}: ${err.response.statusText || 'Unknown error'}`;
+    } else if (err.request) {
+      // Request was made but no response received
+      errorMessage = 'network_error';
+      errorDescription = 'No response from Airtable server';
+    } else {
+      // Something else happened
+      errorMessage = 'request_error';
+      errorDescription = err.message || 'Failed to make request';
+    }
+    
+    console.log('Redirecting with error:', errorMessage, errorDescription);
     return res.redirect(`${clientURL}/?error=${encodeURIComponent(errorMessage)}&error_description=${encodeURIComponent(errorDescription)}`);
   }
 });
@@ -535,19 +559,123 @@ router.get('/me', async (req, res) => {
 
 // Test endpoint for debugging OAuth configuration
 router.get('/debug', (req, res) => {
+  const state = 'debug-test-state';
+  const codeVerifier = crypto.randomBytes(32).toString('base64url');
+  const codeChallenge = crypto.createHash('sha256').update(codeVerifier).digest('base64url');
+  
+  const params = new URLSearchParams({
+    client_id: process.env.AIRTABLE_CLIENT_ID,
+    redirect_uri: process.env.AIRTABLE_OAUTH_REDIRECT_URI,
+    response_type: 'code',
+    scope: 'data.records:read data.records:write schema.bases:read',
+    state: state,
+    code_challenge: codeChallenge,
+    code_challenge_method: 'S256'
+  });
+
+  const fullAuthUrl = `https://airtable.com/oauth2/v1/authorize?${params.toString()}`;
+
   res.json({
     message: 'Auth debug endpoint',
     env: {
-      clientId: process.env.AIRTABLE_CLIENT_ID ? 'set' : 'missing',
-      clientSecret: process.env.AIRTABLE_CLIENT_SECRET ? 'set' : 'missing',
+      clientId: process.env.AIRTABLE_CLIENT_ID || 'missing',
+      clientIdLength: process.env.AIRTABLE_CLIENT_ID?.length || 0,
+      clientSecret: process.env.AIRTABLE_CLIENT_SECRET ? `set (${process.env.AIRTABLE_CLIENT_SECRET.length} chars)` : 'missing',
       redirectUri: process.env.AIRTABLE_OAUTH_REDIRECT_URI || 'missing',
+      redirectUriLength: process.env.AIRTABLE_OAUTH_REDIRECT_URI?.length || 0,
       clientUrl: process.env.CLIENT_URL || 'missing',
       serverUrl: process.env.SERVER_URL || 'missing'
     },
     oauth: {
-      authUrl: `https://airtable.com/oauth2/v1/authorize?client_id=${process.env.AIRTABLE_CLIENT_ID}&redirect_uri=${encodeURIComponent(process.env.AIRTABLE_OAUTH_REDIRECT_URI)}&response_type=code&scope=data.records:read%20data.records:write%20schema.bases:read&state=test`,
+      fullAuthUrl: fullAuthUrl,
+      parameters: {
+        client_id: process.env.AIRTABLE_CLIENT_ID,
+        redirect_uri: process.env.AIRTABLE_OAUTH_REDIRECT_URI,
+        response_type: 'code',
+        scope: 'data.records:read data.records:write schema.bases:read',
+        state: state,
+        code_challenge: codeChallenge,
+        code_challenge_method: 'S256'
+      },
       tokenUrl: 'https://airtable.com/oauth2/v1/token'
+    },
+    comparison: {
+      expectedRedirectUri: 'https://airtable-form-builder-jjcx.onrender.com/auth/airtable/callback',
+      actualRedirectUri: process.env.AIRTABLE_OAUTH_REDIRECT_URI,
+      match: process.env.AIRTABLE_OAUTH_REDIRECT_URI === 'https://airtable-form-builder-jjcx.onrender.com/auth/airtable/callback'
     }
+  });
+});
+
+// Test token exchange endpoint (for debugging)
+router.get('/test-token-exchange', async (req, res) => {
+  try {
+    console.log('Testing token exchange with dummy data...');
+    console.log('Environment variables:');
+    console.log('- CLIENT_ID:', process.env.AIRTABLE_CLIENT_ID);
+    console.log('- CLIENT_SECRET:', process.env.AIRTABLE_CLIENT_SECRET ? 'SET' : 'MISSING');
+    console.log('- REDIRECT_URI:', process.env.AIRTABLE_OAUTH_REDIRECT_URI);
+    
+    const testResponse = await axios.post(
+      'https://airtable.com/oauth2/v1/token',
+      new URLSearchParams({
+        grant_type: 'authorization_code',
+        code: 'dummy_code',
+        client_id: process.env.AIRTABLE_CLIENT_ID,
+        client_secret: process.env.AIRTABLE_CLIENT_SECRET,
+        redirect_uri: process.env.AIRTABLE_OAUTH_REDIRECT_URI,
+        code_verifier: 'dummy_verifier'
+      }),
+      { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
+    );
+    
+    res.json({ success: true, response: testResponse.data });
+  } catch (err) {
+    console.error('Token exchange test error:', err.response?.data || err.message);
+    res.json({
+      success: false,
+      error: {
+        message: err.message,
+        status: err.response?.status,
+        statusText: err.response?.statusText,
+        data: err.response?.data,
+        headers: err.response?.headers,
+        requestData: {
+          grant_type: 'authorization_code',
+          code: 'dummy_code',
+          client_id: process.env.AIRTABLE_CLIENT_ID,
+          client_secret: process.env.AIRTABLE_CLIENT_SECRET ? '[HIDDEN]' : 'MISSING',
+          redirect_uri: process.env.AIRTABLE_OAUTH_REDIRECT_URI,
+          code_verifier: 'dummy_verifier'
+        }
+      }
+    });
+  }
+});
+
+// Simple test to verify OAuth URL generation
+router.get('/test-oauth-url', (req, res) => {
+  const state = crypto.randomBytes(16).toString('hex');
+  const codeVerifier = crypto.randomBytes(32).toString('base64url');
+  const codeChallenge = crypto.createHash('sha256').update(codeVerifier).digest('base64url');
+  
+  const params = new URLSearchParams({
+    client_id: process.env.AIRTABLE_CLIENT_ID,
+    redirect_uri: process.env.AIRTABLE_OAUTH_REDIRECT_URI,
+    response_type: 'code',
+    scope: 'data.records:read data.records:write schema.bases:read',
+    state: state,
+    code_challenge: codeChallenge,
+    code_challenge_method: 'S256'
+  });
+
+  const authUrl = `https://airtable.com/oauth2/v1/authorize?${params.toString()}`;
+  
+  res.json({
+    message: 'OAuth URL test',
+    authUrl: authUrl,
+    parameters: Object.fromEntries(params.entries()),
+    testLink: `<a href="${authUrl}" target="_blank">Test OAuth Flow</a>`
   });
 });
 
