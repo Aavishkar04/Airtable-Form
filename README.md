@@ -4,9 +4,13 @@ A production-ready MERN full-stack application that enables users to authenticat
 
 ## 🚀 Live Demo
 
-- **Frontend**: [To be deployed on Vercel](https://your-app.vercel.app)
-- **Backend**: [To be deployed on Render](https://your-api.render.com)
+all at render -https://airtable-form-builder-jjcx.onrender.com
+## 🎥 Demo Video
 
+[![Watch the video](https://img.youtube.com/vi/3tbWtRJPPXo/0.jpg)](https://youtu.be/3tbWtRJPPXo?si=5mVuUPmgmSnU0bZA)
+
+Click the thumbnail above to watch the full demo on YouTube.
+or click this link here - https://youtu.be/3tbWtRJPPXo?si=5mVuUPmgmSnU0bZA
 ## 📋 Features
 
 - **Airtable OAuth Integration**: Secure login with Airtable accounts
@@ -256,6 +260,5 @@ For testing, create an Airtable base with this structure:
 4. Push to branch: `git push origin feat/new-feature`
 5. Submit a pull request
 
-## 📄 License
 
-This project is licensed under the MIT License.
+since its assignment for internship, all credentials are kepts exposed for temproary duration
