@@ -4,10 +4,12 @@
   "description": "Backend for Airtable Form Builder",
   "main": "src/server.js",
   "scripts": {
-    "start": "node src/server.js",
-    "dev": "nodemon src/server.js",
-    "test": "jest"
-  },
+  "start": "node src/server.js",
+  "dev": "nodemon src/server.js",
+  "test": "jest",
+  "build": "cd ../client && npm install && npm run build"
+},
+
   "dependencies": {
     "express": "^4.18.2",
     "mongoose": "^7.5.0",
