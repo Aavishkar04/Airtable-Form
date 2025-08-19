@@ -354,11 +354,11 @@ router.get('/airtable/callback', async (req, res) => {
       { expiresIn: '7d' }
     );
 
-    res.json({
-      message: 'Airtable OAuth successful',
-      tokens,
-      appToken
-    });
+    // Redirect to frontend with token
+    const clientURL = process.env.CLIENT_URL || 'https://airtable-form-builder-jjcx.onrender.com';
+    const redirectURL = `${clientURL}/auth/callback?token=${appToken}`;
+    console.log('Redirecting to:', redirectURL);
+    res.redirect(redirectURL);
 
   } catch (err) {
     console.error('OAuth callback error:', err.response?.data || err.message);

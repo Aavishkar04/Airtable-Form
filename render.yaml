@@ -59,7 +59,9 @@ services:
       - key: AIRTABLE_OAUTH_REDIRECT_URI
         sync: false
       - key: CLIENT_URL
-        value: https://airtable-form-builder.onrender.com
+        value: https://airtable-form-builder-jjcx.onrender.com
+      - key: SERVER_URL
+        value: https://airtable-form-builder-jjcx.onrender.com
       - key: S3_BUCKET
         sync: false
       - key: S3_REGION

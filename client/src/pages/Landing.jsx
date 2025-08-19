@@ -4,13 +4,17 @@ const Landing = () => {
   const { user, loading } = useAuth()
 
   const handleLogin = () => {
+    // Use the API base URL from environment variables
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:4000'
+    const loginUrl = `${apiUrl}/auth/airtable/login`
+    
     // Use a more reliable redirect method
     try {
-      window.location.assign('http://localhost:4000/auth/airtable/login')
+      window.location.assign(loginUrl)
     } catch (error) {
       console.error('Redirect failed:', error)
       // Fallback: open in new tab
-      window.open('http://localhost:4000/auth/airtable/login', '_blank')
+      window.open(loginUrl, '_blank')
     }
   }
 

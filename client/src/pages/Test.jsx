@@ -10,7 +10,8 @@ const Test = () => {
 
   const testBackend = async () => {
     try {
-      const response = await fetch('http://localhost:4000/health')
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:4000'
+      const response = await fetch(`${apiUrl}/health`)
       const data = await response.json()
       setBackendStatus(`✅ Backend OK: ${data.status}`)
     } catch (error) {
@@ -20,7 +21,8 @@ const Test = () => {
 
   const testOAuth = () => {
     setOauthTest('Redirecting...')
-    window.location.href = 'http://localhost:4000/auth/airtable/login'
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:4000'
+    window.location.href = `${apiUrl}/auth/airtable/login`
   }
 
   return (
@@ -48,8 +50,8 @@ const Test = () => {
           <div>
             <h2 className="text-lg font-semibold mb-2">Manual Tests</h2>
             <ul className="text-sm space-y-1">
-              <li>• Backend Health: <a href="http://localhost:4000/health" target="_blank" className="text-blue-600">http://localhost:4000/health</a></li>
-              <li>• OAuth Login: <a href="http://localhost:4000/auth/airtable/login" target="_blank" className="text-blue-600">http://localhost:4000/auth/airtable/login</a></li>
+              <li>• Backend Health: <a href={`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/health`} target="_blank" className="text-blue-600">Backend Health Check</a></li>
+              <li>• OAuth Login: <a href={`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/auth/airtable/login`} target="_blank" className="text-blue-600">OAuth Login Test</a></li>
             </ul>
           </div>
         </div>
