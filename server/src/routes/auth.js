@@ -365,11 +365,16 @@ router.get('/airtable/callback', async (req, res) => {
 
   try {
     console.log('Exchanging code for tokens...');
+    console.log('State received:', state);
+    console.log('Code received:', code ? 'present' : 'missing');
     
     // Retrieve the code verifier using the state
     const codeVerifier = global.pkceStore?.get(state);
+    console.log('Code verifier found:', codeVerifier ? 'yes' : 'no');
+    
     if (!codeVerifier) {
       console.error('Code verifier not found for state:', state);
+      console.error('Available states:', Array.from(global.pkceStore?.keys() || []));
       const clientURL = process.env.CLIENT_URL || 'https://airtable-form-builder-jjcx.onrender.com';
       return res.redirect(`${clientURL}/?error=invalid_state&error_description=${encodeURIComponent('Invalid or expired state parameter')}`);
     }
@@ -377,19 +382,54 @@ router.get('/airtable/callback', async (req, res) => {
     // Clean up the used code verifier
     global.pkceStore.delete(state);
     
+    console.log('Token exchange parameters:');
+    console.log('- grant_type: authorization_code');
+    console.log('- code: [present]');
+    console.log('- redirect_uri:', process.env.AIRTABLE_OAUTH_REDIRECT_URI);
+    console.log('- code_verifier: [present]');
+    console.log('- client_id:', process.env.AIRTABLE_CLIENT_ID);
+    console.log('- using Basic Auth: yes');
+    
     // Exchange code for tokens with PKCE
-    const tokenResponse = await axios.post(
-      'https://airtable.com/oauth2/v1/token',
-      new URLSearchParams({
-        grant_type: 'authorization_code',
-        code,
-        client_id: process.env.AIRTABLE_CLIENT_ID,
-        client_secret: process.env.AIRTABLE_CLIENT_SECRET,
-        redirect_uri: process.env.AIRTABLE_OAUTH_REDIRECT_URI,
-        code_verifier: codeVerifier
-      }),
-      { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
-    );
+    let tokenResponse;
+    
+    try {
+      // First try: Basic Authentication with client secret
+      console.log('Trying token exchange with Basic Auth...');
+      const clientAuth = Buffer.from(`${process.env.AIRTABLE_CLIENT_ID}:${process.env.AIRTABLE_CLIENT_SECRET}`).toString('base64');
+      
+      tokenResponse = await axios.post(
+        'https://airtable.com/oauth2/v1/token',
+        new URLSearchParams({
+          grant_type: 'authorization_code',
+          code,
+          redirect_uri: process.env.AIRTABLE_OAUTH_REDIRECT_URI,
+          code_verifier: codeVerifier
+        }),
+        { 
+          headers: { 
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'Authorization': `Basic ${clientAuth}`
+          } 
+        }
+      );
+    } catch (basicAuthError) {
+      console.log('Basic Auth failed, trying with client_id in body...');
+      
+      // Second try: Client credentials in request body (original approach)
+      tokenResponse = await axios.post(
+        'https://airtable.com/oauth2/v1/token',
+        new URLSearchParams({
+          grant_type: 'authorization_code',
+          code,
+          client_id: process.env.AIRTABLE_CLIENT_ID,
+          client_secret: process.env.AIRTABLE_CLIENT_SECRET,
+          redirect_uri: process.env.AIRTABLE_OAUTH_REDIRECT_URI,
+          code_verifier: codeVerifier
+        }),
+        { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
+      );
+    }
     
     console.log('Token exchange successful');
 
@@ -459,11 +499,14 @@ router.get('/airtable/callback', async (req, res) => {
 
   } catch (err) {
     console.error('OAuth callback error:', err.response?.data || err.message);
+    console.error('Error status:', err.response?.status);
+    console.error('Error headers:', err.response?.headers);
     console.error('Full error:', err);
     
     const clientURL = process.env.CLIENT_URL || 'https://airtable-form-builder-jjcx.onrender.com';
     const errorMessage = err.response?.data?.error || err.message || 'Token exchange failed';
-    return res.redirect(`${clientURL}/?error=token_exchange_failed&error_description=${encodeURIComponent(errorMessage)}`);
+    const errorDescription = err.response?.data?.error_description || `Status: ${err.response?.status}`;
+    return res.redirect(`${clientURL}/?error=${encodeURIComponent(errorMessage)}&error_description=${encodeURIComponent(errorDescription)}`);
   }
 });
 
