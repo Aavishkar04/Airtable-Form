@@ -1,12 +1,18 @@
-require('dotenv').config();
-const express = require('express');
-const mongoose = require('mongoose');
-const cors = require('cors');
-const helmet = require('helmet');
+import 'dotenv/config';
+import express from 'express';
+import mongoose from 'mongoose';
+import cors from 'cors';
+import helmet from 'helmet';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
-const authRoutes = require('./routes/auth');
-const airtableRoutes = require('./routes/airtable');
-const formRoutes = require('./routes/forms');
+import authRoutes from './routes/auth.js';
+import airtableRoutes from './routes/airtable.js';
+import formRoutes from './routes/forms.js';
+import errorHandler from './middleware/errorHandler.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 
@@ -60,7 +66,6 @@ app.use('*', (req, res) => {
 });
 
 // Error handling middleware
-const errorHandler = require('./middleware/errorHandler');
 app.use(errorHandler);
 
 // Database connection
@@ -73,15 +78,6 @@ mongoose.connect(process.env.MONGO_URI, {
 
 const PORT = process.env.PORT || 4000;
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
-import path from "path";
-import { fileURLToPath } from "url";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
 // ✅ Serve frontend in production
 if (process.env.NODE_ENV === "production") {
   const frontendPath = path.join(__dirname, "../../client/dist");
@@ -92,4 +88,8 @@ if (process.env.NODE_ENV === "production") {
   });
 }
 
-module.exports = app;
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
+
+export default app;

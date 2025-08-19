@@ -1,5 +1,5 @@
-const request = require('supertest')
-const app = require('../src/server')
+import request from 'supertest';
+import app from '../src/server.js';
 
 describe('Auth Routes', () => {
   describe('GET /auth/airtable/login', () => {

@@ -1,4 +1,4 @@
-const axios = require('axios');
+import axios from 'axios';
 
 class AirtableAPI {
   constructor(accessToken) {
@@ -83,4 +83,4 @@ class AirtableAPI {
   }
 }
 
-module.exports = AirtableAPI;
+export default AirtableAPI;

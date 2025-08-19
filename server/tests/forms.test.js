@@ -1,6 +1,6 @@
-const request = require('supertest')
-const app = require('../src/server')
-const jwt = require('jsonwebtoken')
+import request from 'supertest';
+import app from '../src/server.js';
+import jwt from 'jsonwebtoken';
 
 describe('Forms Routes', () => {
   let authToken
@@ -37,8 +37,7 @@ describe('Forms Routes', () => {
       }
 
       // Mock Form.findById
-      jest.doMock('../src/models/Form')
-      const Form = require('../src/models/Form')
+      const { default: Form } = await import('../src/models/Form.js');
       Form.findById = jest.fn().mockResolvedValue({
         ...mockForm,
         populate: jest.fn().mockReturnThis()

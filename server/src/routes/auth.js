@@ -1,8 +1,8 @@
-const express = require('express');
-const jwt = require('jsonwebtoken');
-const axios = require('axios');
-const crypto = require('crypto');
-const User = require('../models/User');
+import express from 'express';
+import jwt from 'jsonwebtoken';
+import axios from 'axios';
+import crypto from 'crypto';
+import User from '../models/User.js';
 
 const router = express.Router();
 
@@ -260,4 +260,4 @@ router.get('/me', async (req, res) => {
   }
 });
 
-module.exports = router;
+export default router;

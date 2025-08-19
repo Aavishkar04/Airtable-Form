@@ -1,8 +1,8 @@
-const AirtableAPI = require('../src/utils/airtable')
+import AirtableAPI from '../src/utils/airtable.js';
+import axios from 'axios';
 
 // Mock axios
-jest.mock('axios')
-const axios = require('axios')
+jest.mock('axios');
 
 describe('AirtableAPI', () => {
   let airtableAPI

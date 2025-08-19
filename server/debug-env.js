@@ -1,4 +1,4 @@
-require('dotenv').config();
+import 'dotenv/config';
 
 console.log('=== Environment Variables Debug ===');
 console.log('PORT:', process.env.PORT);

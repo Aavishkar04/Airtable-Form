@@ -1,8 +1,8 @@
-const express = require('express');
-const auth = require('../middleware/auth');
-const Form = require('../models/Form');
-const Submission = require('../models/Submission');
-const AirtableAPI = require('../utils/airtable');
+import express from 'express';
+import auth from '../middleware/auth.js';
+import Form from '../models/Form.js';
+import Submission from '../models/Submission.js';
+import AirtableAPI from '../utils/airtable.js';
 
 const router = express.Router();
 
@@ -218,4 +218,4 @@ function evaluateConditionalLogic(fields, answers) {
   });
 }
 
-module.exports = router;
+export default router;

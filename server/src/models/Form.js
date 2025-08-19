@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 const conditionSchema = new mongoose.Schema({
   fieldId: {
@@ -86,4 +86,4 @@ const formSchema = new mongoose.Schema({
   timestamps: true
 });
 
-module.exports = mongoose.model('Form', formSchema);
+export default mongoose.model('Form', formSchema);
