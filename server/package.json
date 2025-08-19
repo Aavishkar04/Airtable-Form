@@ -2,10 +2,10 @@
   "name": "airtable-form-builder-server",
   "version": "1.0.0",
   "description": "Backend for Airtable Form Builder",
-  "main": "src/server.js",
+  "main": "src/server.cjs",
   "scripts": {
-  "start": "node src/server.js",
-  "dev": "nodemon src/server.js",
+  "start": "node src/server.cjs",
+  "dev": "nodemon src/server.cjs",
   "test": "jest",
   "build": "cd ../client && NODE_ENV=development npm install && npm run build"
 },
