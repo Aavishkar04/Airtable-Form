@@ -303,13 +303,31 @@ router.get('/airtable/login', (req, res) => {
   const state = crypto.randomBytes(16).toString('hex');
   const scope = 'data.records:read data.records:write schema.bases:read';
 
-  // Build the authorization URL with proper encoding
+  // Generate PKCE parameters
+  const codeVerifier = crypto.randomBytes(32).toString('base64url');
+  const codeChallenge = crypto.createHash('sha256').update(codeVerifier).digest('base64url');
+  
+  // Store code verifier temporarily (in production, use Redis or similar)
+  // For now, we'll store it in memory with the state as key
+  global.pkceStore = global.pkceStore || new Map();
+  global.pkceStore.set(state, codeVerifier);
+  
+  // Clean up old entries (older than 10 minutes)
+  for (const [key, value] of global.pkceStore.entries()) {
+    if (typeof value === 'object' && Date.now() - value.timestamp > 10 * 60 * 1000) {
+      global.pkceStore.delete(key);
+    }
+  }
+
+  // Build the authorization URL with PKCE parameters
   const params = new URLSearchParams({
     client_id: clientId,
     redirect_uri: redirectUri,
     response_type: 'code',
     scope: scope,
-    state: state
+    state: state,
+    code_challenge: codeChallenge,
+    code_challenge_method: 'S256'
   });
 
   const authUrl = `https://airtable.com/oauth2/v1/authorize?${params.toString()}`;
@@ -319,6 +337,8 @@ router.get('/airtable/login', (req, res) => {
   console.log('- redirect_uri:', redirectUri);
   console.log('- scope:', scope);
   console.log('- state:', state);
+  console.log('- code_challenge:', codeChallenge);
+  console.log('- code_challenge_method: S256');
   console.log('- Full URL:', authUrl);
 
   res.redirect(authUrl);
@@ -346,7 +366,18 @@ router.get('/airtable/callback', async (req, res) => {
   try {
     console.log('Exchanging code for tokens...');
     
-    // Exchange code for tokens
+    // Retrieve the code verifier using the state
+    const codeVerifier = global.pkceStore?.get(state);
+    if (!codeVerifier) {
+      console.error('Code verifier not found for state:', state);
+      const clientURL = process.env.CLIENT_URL || 'https://airtable-form-builder-jjcx.onrender.com';
+      return res.redirect(`${clientURL}/?error=invalid_state&error_description=${encodeURIComponent('Invalid or expired state parameter')}`);
+    }
+    
+    // Clean up the used code verifier
+    global.pkceStore.delete(state);
+    
+    // Exchange code for tokens with PKCE
     const tokenResponse = await axios.post(
       'https://airtable.com/oauth2/v1/token',
       new URLSearchParams({
@@ -354,7 +385,8 @@ router.get('/airtable/callback', async (req, res) => {
         code,
         client_id: process.env.AIRTABLE_CLIENT_ID,
         client_secret: process.env.AIRTABLE_CLIENT_SECRET,
-        redirect_uri: process.env.AIRTABLE_OAUTH_REDIRECT_URI
+        redirect_uri: process.env.AIRTABLE_OAUTH_REDIRECT_URI,
+        code_verifier: codeVerifier
       }),
       { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
     );
